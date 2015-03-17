@@ -1,8 +1,12 @@
+# Algorithms-as-a-Service
+
+Cloud'N'Sci Ltd has created a marketplace for data refining services based on the Algorithms-as-a-Service concept. The [Cloud'N'Sci.fi marketplace](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") is available at [http://cloudnsci.fi](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") for anyone who wants to commercialize or utilize smart data refining algorithms, data sets or data refining applications. 
+
+Algorithmic data refining solutions are called "refineries". Each refinery should implement a data refining step with well-specified input and output data. The Cloud'N'Sci.fi marketplace provides means for making data refining requests to refinery modules and charging for their usage. Requests can be made manually from the marketplace web user interface or by external applications via the marketplace Application Programming Interface (API). Moreover, the marketplace makes it possible to build larger "algorithm architectures" wherein one refinery can make subrequests to another. The Cloud'N'Sci.fi marketplace takes care of hosting refinery processes and delivering input/output data to/from refineries.
+
+One of the key design principles of the Cloud'N'Sci.fi marketplace has been that developers must be able use their favorite programming language and software libraries when implementing new refineries. Therefore, refineries are integrated to the marketplace as independent processes without any marketplace related source code dependencies. Refinery processes are executed in secure sandboxes that are completely isolated from the rest of the world (unless explictly granted access to some external resources). Refineries can communicate only with the Cloud'N'Sci.fi marketplace by using the Cloud'N'Sci.fi Refinery Protocol (CNS-RP).
+
 # Cloud'N'Sci Refinery Protocol (CNS-RP)
-
-Cloud'N'Sci Ltd has created a marketplace for data refining services based on the Algorithms-as-a-Service concept. The [Cloud'N'Sci.fi marketplace](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") is available at [http://cloudnsci.fi](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") for everybody who wants to commercialize or utilize smart data refining algorithms, data sets or data refining applications. 
-
-Refinery processes are executed in secure sandboxes that are completely isolated from the rest of the world (unless explictly granted access to some external resources). Refineries can communicate only with the Cloud'N'Sci.fi marketplace by using the Cloud'N'Sci.fi Refinery Protocol (CNS-RP).
 
 In CNS-RP, messages are delivered as tabulator separated lines via standard input/output/error streams (stdin/stdout/stderr). This makes the protocol very simple and easy to implement for various programming languages and operating systems. From now on, we will use \t to indicate the tabulator characters in messages. Because the tabulator character is reserved for this special use, message content part must not include any tabulator characters.
 
