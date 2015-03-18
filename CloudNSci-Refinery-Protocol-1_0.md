@@ -1,12 +1,6 @@
-# Algorithms-as-a-Service
-
-Cloud'N'Sci Ltd has created a marketplace for data refining services based on the Algorithms-as-a-Service concept. The [Cloud'N'Sci.fi marketplace](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") is available at [http://cloudnsci.fi](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace") for anyone who wants to commercialize or utilize smart data refining algorithms, data sets or data refining applications. 
-
-Algorithmic data refining solutions are called "refineries". Each refinery should implement a data refining step with well-specified input and output data. The Cloud'N'Sci.fi marketplace provides means for making data refining requests to refinery modules and charging for their usage. Requests can be made manually from the marketplace web user interface or by external applications via the marketplace Application Programming Interface (API). Moreover, the marketplace makes it possible to build larger "algorithm architectures" wherein one refinery can make subrequests to another. The Cloud'N'Sci.fi marketplace takes care of hosting refinery processes and delivering input/output data to/from refineries.
-
-One of the key design principles of the Cloud'N'Sci.fi marketplace has been that developers must be able use their favorite programming language and software libraries when implementing new refineries. Therefore, refineries are integrated to the marketplace as independent processes without any marketplace related source code dependencies. Refinery processes are executed in secure sandboxes that are completely isolated from the rest of the world (unless explictly granted access to some external resources). Refineries can communicate only with the Cloud'N'Sci.fi marketplace by using the Cloud'N'Sci.fi Refinery Protocol (CNS-RP).
-
 # Cloud'N'Sci Refinery Protocol (CNS-RP)
+
+The Cloud'N'Sci Refinery Protocol (CNS-RP) is used to integrate algorithmic data refining solutions into the [Cloud'N'Sci.fi marketplace](http://cloudnsci.fi "The Cloud'N'Sci.fi marketplace"). See the project [README](README.md) file for an introduction to the Algorithms-as-a-Service concept.
 
 In CNS-RP, messages are delivered as tabulator separated lines via standard input/output/error streams (stdin/stdout/stderr). This makes the protocol very simple and easy to implement for various programming languages and operating systems. From now on, we will use \t to indicate the tabulator characters in messages. Because the tabulator character is reserved for this special use, message content part must not include any tabulator characters.
 
@@ -14,7 +8,7 @@ Refinery processes must read incoming messages from the standard input stream (s
 
 ## Launching refinery processes   
 
-The marketplace will launch a new instance of a refinery as a stand-alone process whenever needed. This may happen when the first data refining request targeted to the refinery arrives or whem another concurrently running instance is needed to handle heavy load. The launch command for the refinery process must be specified by the refinery provider for each offered data refining service type. Thus, providers can create multiple types of data refining services that are based on the same refinery module by giving different the launch command parameters. 
+The marketplace will launch a new instance of a refinery as a stand-alone process whenever needed. This may happen when the first data refining request targeted to the refinery arrives or when another concurrently running instance is needed to handle heavy load. The launch command for the refinery process must be specified by the refinery provider for each offered data refining service type. Thus, providers can create multiple types of data refining services that are based on the same refinery module by giving different launch command parameters. 
 
 When a refinery process is successfully started, it must write the following line to stdout, wherein protocolVersion is the version of the CNS-RP protocol supported by the refinery. 
 
@@ -30,13 +24,13 @@ The current version of the protocol is 1.0 which is described in the following s
 
 ### Initializing
 
-After launching the refinery process and receiving the HELLO message, the marketplace sends a SETUP message which includes an unique refineryId and expected function interface specifications. For each function interface, a function name and the number of input/output/error parameters are given. The first function interface is always named 'main' and it specifies expected parameter counts for this refinery as defined during data refining solution submission (explained in the Solution Provider guide that will be publised later). The refinery should read the SETUP message from stdin, check the function interfaces and respond by sending either ALIVE (all OK) or DEAD (something is wrong).
+After launching the refinery process and receiving the HELLO message, the marketplace sends a SETUP message which includes an unique refineryId, solution name and version (as submitted to the marketplace) and expected function interface specifications. For each function interface, a function name and the number of input/output/error parameters are given. The first function interface is always named 'main' and it specifies expected parameter counts for this refinery as defined during data refining solution submission (explained in the Solution Provider guide that will be published later). The refinery should read the SETUP message from stdin, check the function interfaces and respond by sending either ALIVE (all OK) or DEAD (something is wrong).
 
-	SETUP\t<refineryId>\tmain:<in/out/err>\t[<function1:in1/out1/err1> ...]
+	SETUP\t<refineryId>\tname\tversion\tmain:<in/out/err>\t[<function1:in1/out1/err1> ...]
 
-For example, the following SETUP message would set refineryId=a0000004f and specify two function interfaces 'main' and 'merge'. The main function takes two input data items and generates either one output data or one error data. This refinery can also call function 'merge' by giving 2 data items as input and expecting one data item as a result (output or error).      
+For example, the following SETUP message would set refineryId=a0000004f, name=big-sort, version=0.1 and specify three function interfaces 'main', 'small-sort' and 'merge'. The main function takes one input data item and generates either one output data or one error data. This refinery can also call function 'small-sort' by giving 1 data item as input and expecting one data item as a result (output or error). The other callable function 'merge' takes 2 input data items.      
 
-	SETUP	a0000004f	main:2/1/1	merge:2/1/1
+	SETUP	a0000004f	big-sort	0.1	main:1/1/1	small-sort:1/1/1	merge:2/1/1
 
 The refinery must check that given function interfaces match the actual implementation. In case everything seems to be OK, the refinery should reply by sending an ALIVE message which must include exactly the same refineryId as given in SETUP and the properties of the refinery as key-value pairs. In this protocol version, there is only one mandatory property 'info' which should briefly describe the functionality of the refinery. In addition, there can be arbitrary number of optional refinery-specific properties such as version number or active setup details that may help in troubleshooting.
 
@@ -62,7 +56,7 @@ After the initialization phase, refinery should wait for data refining requests 
 
 For example:
 
-	PERFORM	b00000082		900000123	/work	/input1	/input2
+	PERFORM	b00000082		900000123	/work	/input1
 
 The refinery should read the input data from specified directories and start processing it. In case the request was completed succesfully, the refinery should deliver the results to the marketplace by sending a READY message including the original requestId and 1-M output directories. Each output directory must be a subdirectory to the working directory given in PERFORM (/data/work in the example above), but can be named freely. The number of returned output directories must match the output count defined for the 'main' function interface (see SETUP).     
 
@@ -129,13 +123,42 @@ The ERRORS message is similar to RESULTS but refers to 1-E error data directorie
 For example:
 
 	ERRORS	b00000082	1	/error1
+
+In case the marketplace decides to terminate or deny a subrequest for any reason, it will send an EXCEPTION message to the refinery which started the subrequest. This means that there was nothing wrong in the original subrequest or given input data, but the system just cannot process it at the moment. The EXCEPTION message includes the main requestId and a description for logging purposes. The receiving refinery must terminate all processing related to the given requestId immediately and send FAILED.  
+
+	EXCEPTION\t<requestId>\tdescription
+
+For example:
+
+	EXCEPTION	b00000082	Temporal networking problem
 	
 ### Protocol violation
 
 The INVALID message is a general purpose way to respond to a message which violates the CNS-RP protocol or contains invalid content, e.g. refers to unknown requestId. Any protocol party can reply with INVALID if necessary. Typically, the cause for protocol violation is a bug in refinery implementation which and therefore the marketplace may kill the process immediately.     
 
 	INVALID\t<originalMsgType>\t[<originalMsgArg1> ...] 
+	
+### Monitoring
 
-# Copyright 
+The marketplace monitors the health of refinery process by sending PING messages periodically. Refineries should respond to PING with a PONG message as soon as possible to indicate that the process is alive and kicking. Ignoring PING may result in termination of the refinery process in case it hasn't given any signs of healthy activity for a long time. This is necessary to recover from situation in which there is a bug in the algorithm implementation that causes a never-ending "busy-loop" consuming a lot of CPU, RAM and/or file storage. The PING messages includes an unique pingId that must be included also to the PONG reply.
+ 
+	PING\t<pingId>
+
+For example:
+
+	PING	345
+
+The PONG message has also a set of key-value pairs which must include at least property sender=<refineryId>. Optionally, the refinery can also return some useful statistics such as requests=<comma-separated list of active requests> and threads=<number of active threads> separated with semi-colon (;). 
+
+
+	PONG\t<pongId>\tsender=<refineryId>[;requests=<request-list>;threads=<thread-count>]
+
+For example:
+
+	PONG	345	sender=a0000004f;requests=b00000082,b00000099;threads=2   
+
+In the example above, refinery a0000004f reports that it is currently performing two requests b00000082 and b00000099 on separate threads.  
+
+----------
   
-Copyright (c) Cloud'N'Sci Ltd 2014, http://cloudnsci.fi.
+Copyright (c) Cloud'N'Sci Ltd 2015, [http://cloudnsci.fi](http://cloudnsci.fi).
