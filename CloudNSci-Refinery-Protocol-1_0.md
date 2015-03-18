@@ -58,7 +58,7 @@ For example:
 
 	PERFORM	b00000082		900000123	/work	/input1
 
-The refinery should read the input data from specified directories and start processing it. In case the request was completed succesfully, the refinery should deliver the results to the marketplace by sending a READY message including the original requestId and 1-M output directories. Each output directory must be a subdirectory to the working directory given in PERFORM (/data/work in the example above), but can be named freely. The number of returned output directories must match the output count defined for the 'main' function interface (see SETUP).     
+The refinery should read the input data from specified directories and start processing it. In case the request was completed succesfully, the refinery should deliver the results to the marketplace by sending a READY message including the original requestId and 1-M output directories. Each output directory must be a subdirectory to the working directory given in PERFORM (/work in the example above), but can be named freely. The number of returned output directories must match the output count defined for the 'main' function interface (see SETUP).     
 
 	READY\t<requestId>\t<outputDir1>\t[<outputDir2> ...]
 
