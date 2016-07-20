@@ -47,24 +47,45 @@ In case the function interfaces given in SETUP do not match the actual implement
 For example:
 
 	DEAD	a0000004f	Unknown function 'merge'
-   
+
+### Contexts
+
+Before sending any requests, the marketplace will introduce one or more contexts by sending a CONTEXT message. Each context has an unique ID referred by the following requests and defines a set of context related properties.       
+
+    CONTEXT\t<contextId>\t<contextDir>\t<providerId>\t<applicationId>\t<sessionId>\t<customerId>
+
+For example:
+
+    CONTEXT	900000123	/contexts/900000123	123	456	789	98765
+
+Value of parameter contextDir defines an absolute path to a directory in the local file system that can be used to save context related information which should be remembered between subsequent requests in the same context. Value providerId identifies the provider of the refinery. Value applicationId identifies the applications which made the request. Value sessionId identifies the application session in which the request was made. Value customerId identifies the customer who owns the application session.
+
+Refineries that need context information should maintain a mapping from contextId to the context related data they need. The CONTEXT message can be ignored by stateless refineries which do not utilize context information.  
+
+### Resources
+
+When submitting new refinery releases in the marketplace, providers can optionally identify a list of required resources. The marketplace will deliver available resources to the refinery by sending a RESOURCE message.
+
+    RESOURCE\t<contextId>\t<resourceId>\t<featureId>\t<valueType>\t<value>
+    
+For example:
+ 
+    RESOURCE	900000123	MyResource	MyFeature1	TXT	MyValue
+    RESOURCE	900000123	MyResource	MyFeature2	DIR	/resources/90000123/MyResource/MyFeature2
+
+Value of parameter contextId identifies the context in which the resource is available. Parameters <resourceId> and <featureId> identify the resource feature. Value of parameter valueType can be either TXT or DIR. In case of TXT, parameter <value> defines the value of the feature (e.g. a number or string). In case of DIR, the feature value defines a path in the local file system directory containing the resource value (e.g. an image). 
+
+Refineries that have required resources should maintain a mapping from the contextId to the related resources so that resource values can be found when needed in request execution. Refineries without required resources can ignore RESOURCE messages.  
+       
 ### Request handling
 
-After the initialization phase, refinery should wait for data refining requests from stdin. The marketplace will make requests by sending a PERFORM message which includes an unique requestId, an unique contextId and absolute file system paths to a working directory and 1-N input directories wherein N matches the input count defined for the 'main' function interface (see SETUP). The refinery must use the given requestId for all replies related to this request. The contextId can be used to detect sequent requests by the same client and may help troubleshooting.    
+After the initialization phase and context definitions, refinery should wait for data refining requests from stdin. The marketplace will make requests by sending a PERFORM message which includes an unique requestId, an unique contextId and absolute file system paths to a working directory and 1-N input directories wherein N matches the input count defined for the 'main' function interface (see SETUP). The refinery must use the given requestId for all replies related to this request. The contextId refers to a context defined earlier that can be utilized for performing the request.    
 
 	PERFORM\t<requestId>\t<contextId>\t<workDir>\t<inputDir1>\t[<inputDir2> ...]
 
 For example:
 
 	PERFORM	b00000082		900000123	/work	/input1
-
-The PERFORM request may also contain information about available resources. These will be listed with contextId as resource.feature:key=value separated by semicolons.
-
-    PERFORM\t<requestId>\t<contextId>;<resource>.<feature>:<key>=<value>[;<resource2>.<feature2>:<key>=<value>...]\t<workDir>\t<inputDir1>\t[<inputDir2> ...]
-
-For example:
-
-	PERFORM	b00000082		900000123;DB.users:get=1;DB.users:insert=1	/work	/input1
 
 The refinery should read the input data from specified directories and start processing it. In case the request was completed succesfully, the refinery should deliver the results to the marketplace by sending a READY message including the original requestId and 1-M output directories. Each output directory must be a subdirectory to the working directory given in PERFORM (/work in the example above), but can be named freely. The number of returned output directories must match the output count defined for the 'main' function interface (see SETUP).     
 
